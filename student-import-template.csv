@@ -1,0 +1,2 @@
+name,register_no,department,year,apaar_id,email,intake,enrolment,supernumerary,nri,oci,foreign
+Sample Student,CS2026-001,Computer Science,1,890123456789,sample.student@demo.edu,120,115,3,false,false,false

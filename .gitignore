@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.env
+backend/apaar.db
+apaar.db
+backend/uploads/
+*.log
