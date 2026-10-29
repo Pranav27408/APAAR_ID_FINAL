@@ -31,9 +31,10 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 app = FastAPI(title="APAAR Student Data Platform API", version="1.0.0", description="Student records and verification workflow API.")
-default_frontend_origins = [f"http://{host}:{port}" for host in ("localhost", "127.0.0.1") for port in (5173, 5174, 5175)]
-frontend_origins = os.getenv("FRONTEND_ORIGINS", os.getenv("FRONTEND_ORIGIN", ",".join(default_frontend_origins)))
-app.add_middleware(CORSMiddleware, allow_origins=[origin.strip().rstrip("/") for origin in frontend_origins.split(",") if origin.strip()], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+default_frontend_origins = ["https://apaarstudentid.netlify.app", *[f"http://{host}:{port}" for host in ("localhost", "127.0.0.1") for port in (5173, 5174, 5175)]]
+configured_frontend_origins = os.getenv("FRONTEND_ORIGINS", os.getenv("FRONTEND_ORIGIN", ""))
+frontend_origins = list(dict.fromkeys([*default_frontend_origins, *[origin.strip().rstrip("/") for origin in configured_frontend_origins.split(",") if origin.strip()]]))
+app.add_middleware(CORSMiddleware, allow_origins=frontend_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 class Base(DeclarativeBase): pass
 
