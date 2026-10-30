@@ -207,8 +207,11 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
     if not user or not pwd.verify(body.password,user.password_hash) or user.role!=body.role: raise HTTPException(401,"Invalid credentials for selected portal")
     if user.role=="student":
         student=db.scalar(select(Student).where(Student.email==user.email))
-        if not student or body.student_name.strip().casefold()!=student.name.casefold() or body.institution.strip().casefold()!=student.institution.casefold():
+        if not student or body.student_name.strip().casefold()!=student.name.strip().casefold() or body.institution.strip().casefold()!=student.institution.strip().casefold():
             raise HTTPException(401,"Student name or institution does not match the student record")
+    elif user.role=="staff":
+        if body.student_name.strip().casefold()!=user.name.strip().casefold() or body.institution.strip().casefold()!=user.institution.strip().casefold():
+            raise HTTPException(401,"Staff name or institution does not match the staff account")
     token=jwt.encode({"sub":str(user.id),"role":user.role,"exp":datetime.now(timezone.utc)+timedelta(minutes=TOKEN_MINUTES)},JWT_SECRET,algorithm=ALGORITHM)
     return {"access_token":token,"token_type":"bearer","name":user.name,"email":user.email,"role":user.role,"institution":user.institution}
 
