@@ -196,6 +196,21 @@ def startup():
             rows=[("STU-2026-001","Aarav Sharma","EC2023-041","Computer Science",3,"123456789012","student@demo.edu",120,112,4,"Approved",3),("STU-2026-002","Diya Patel","CS2024-018","Computer Science",2,"234567890123","diya.patel@demo.edu",180,172,6,"Pending",2),("STU-2026-003","Kabir Reddy","ME2022-067","Mechanical Engineering",4,"345678901234","kabir.reddy@demo.edu",90,84,3,"Needs correction",4),("STU-2026-004","Meera Iyer","IT2023-029","Information Technology",3,"456789012345","meera.iyer@demo.edu",120,118,2,"Approved",3),("STU-2026-005","Arjun Nair","CE2024-052","Civil Engineering",2,"567890123456","arjun.nair@demo.edu",60,56,2,"Pending",1),("STU-2026-006","Ananya Das","CS2022-011","Computer Science",4,"678901234567","ananya.das@demo.edu",180,176,4,"Approved",4),("STU-2026-007","Vikram Singh","EE2023-034","Electrical Engineering",3,"789012345678","vikram.singh@demo.edu",90,80,3,"Rejected",2)]
             for row in rows:
                 db.add(Student(public_id=row[0],name=row[1],register_no=row[2],department=row[3],year=row[4],apaar_id=row[5],email=row[6],intake=row[7],enrolment=row[8],supernumerary=row[9],status=row[10],docs=row[11]))
+        # Keep the public demo student's login identity aligned with its student record,
+        # including databases that already contained unrelated student rows at first deploy.
+        db.flush()
+        demo_student_user=db.scalar(select(User).where(User.email=="student@demo.edu",User.role=="student"))
+        if demo_student_user:
+            demo_student=db.scalar(select(Student).where(Student.email==demo_student_user.email))
+            if demo_student:
+                demo_student.name=demo_student_user.name
+                demo_student.institution=demo_student_user.institution
+            else:
+                demo_apaar="900000000001"
+                while db.scalar(select(Student.id).where(Student.apaar_id==demo_apaar)):
+                    demo_apaar=str(int(demo_apaar)-1)
+                demo_student=Student(public_id=f"STU-DEMO-{uuid.uuid4().hex[:8].upper()}",name=demo_student_user.name,register_no=f"DEMO-{uuid.uuid4().hex[:8].upper()}",department="Electronics & Communication",year=3,apaar_id=demo_apaar,email=demo_student_user.email,intake=120,enrolment=112,supernumerary=4,status="Approved",docs=3,institution=demo_student_user.institution)
+                db.add(demo_student)
         db.commit()
 
 @app.get("/api/health")
