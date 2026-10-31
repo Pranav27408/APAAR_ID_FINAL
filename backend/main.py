@@ -199,6 +199,10 @@ def startup():
         # Keep the public demo student's login identity aligned with its student record,
         # including databases that already contained unrelated student rows at first deploy.
         db.flush()
+        demo_staff_user=db.scalar(select(User).where(User.email=="staff@demo.edu",User.role=="staff"))
+        if demo_staff_user:
+            demo_staff_user.name="Priya Nair"
+            demo_staff_user.institution="National Institute of Technology, Jaipur"
         demo_student_user=db.scalar(select(User).where(User.email=="student@demo.edu",User.role=="student"))
         if demo_student_user:
             demo_student=db.scalar(select(Student).where(Student.email==demo_student_user.email))
@@ -216,16 +220,19 @@ def startup():
 @app.get("/api/health")
 def health(): return {"status":"ok"}
 
+def normalize_login_detail(value: str) -> str:
+    return " ".join((value or "").split()).casefold()
+
 @app.post("/api/auth/login")
 def login(body: LoginIn, db: Session = Depends(get_db)):
     user=db.scalar(select(User).where(User.email==body.email.lower()))
     if not user or not pwd.verify(body.password,user.password_hash) or user.role!=body.role: raise HTTPException(401,"Invalid credentials for selected portal")
     if user.role=="student":
         student=db.scalar(select(Student).where(Student.email==user.email))
-        if not student or body.student_name.strip().casefold()!=student.name.strip().casefold() or body.institution.strip().casefold()!=student.institution.strip().casefold():
+        if not student or normalize_login_detail(body.student_name)!=normalize_login_detail(student.name) or normalize_login_detail(body.institution)!=normalize_login_detail(student.institution):
             raise HTTPException(401,"Student name or institution does not match the student record")
     elif user.role=="staff":
-        if body.student_name.strip().casefold()!=user.name.strip().casefold() or body.institution.strip().casefold()!=user.institution.strip().casefold():
+        if normalize_login_detail(body.student_name)!=normalize_login_detail(user.name) or normalize_login_detail(body.institution)!=normalize_login_detail(user.institution):
             raise HTTPException(401,"Staff name or institution does not match the staff account")
     token=jwt.encode({"sub":str(user.id),"role":user.role,"exp":datetime.now(timezone.utc)+timedelta(minutes=TOKEN_MINUTES)},JWT_SECRET,algorithm=ALGORITHM)
     return {"access_token":token,"token_type":"bearer","name":user.name,"email":user.email,"role":user.role,"institution":user.institution}
